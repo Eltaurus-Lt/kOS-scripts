@@ -9,23 +9,26 @@ brakes off.
 wait until ship:velocity:surface:mag > 40.
 print "take off".
 sas off.
-until alt:radar > 20 {
-	set liftpitch to min(2.0 + 0.6 * alt:radar, 10.0).
-	set liftsin to sin(liftpitch).
-	set err to liftsin - ship:up:vector * ship:facing:vector.
-	if err > 0 {
-		print "full".
-		unlock steering.
-		set ship:control:pitch to 1.0.
-	} else {
-		print "auto".
-		set ship:control:pitch to 0.0.
-		lock steering to heading(90.0, liftpitch).
-	}
+
+set pitchTRG to 7.0.
+set pitchSIN to sin(pitchTRG).
+
+set ship:control:pitch to 0.5.
+wait until pitchSIN - ship:up:vector * ship:facing:vector < 0.01.
+
+sas on.
+set ship:control:pitch to 1.
+// set pitchPID to PIDLOOP(20.0, 150.0, 25.0, -1, 1).
+until alt:radar > 200 {
+	// set pitchTRG to min(7.0 + alt:radar / 2, 20.0).
+	// set pitchPID:setpoint to sin(pitchTRG).
+	// set ship:control:pitch to pitchPID:UPDATE(time:seconds, ship:up:vector * ship:facing:vector).
+	print ship:control:pitch.
 }
+sas off.
+until alt:radar > 400 {
+	print ship:control:pitch.
+}
+set ship:control:pitch to 0.
 
-print "gaining altitude".
-lock steering to heading(90.0, 7.0).
-
-wait until ship:altitude > 400.
 print "cruising altitude reached".
