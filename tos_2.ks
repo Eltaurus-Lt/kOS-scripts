@@ -17,18 +17,19 @@ set ship:control:pitch to 0.5.
 wait until pitchSIN - ship:up:vector * ship:facing:vector < 0.01.
 
 sas on.
-set ship:control:pitch to 1.
-// set pitchPID to PIDLOOP(20.0, 150.0, 25.0, -1, 1).
-until alt:radar > 200 {
+wait until alt:radar > 25.
+sas off.
+
+set pitchPID to PIDLOOP(1.0, 0.1, 0.5, -1, 1).
+set pitchI0 to 0.1.
+set pitchPID:setpoint to pitchSIN.
+when alt:radar > 250 then {
+	print "cruising altitude reached".
+	set pitchPID:setpoint to 0.
+}
+until false {
 	// set pitchTRG to min(7.0 + alt:radar / 2, 20.0).
 	// set pitchPID:setpoint to sin(pitchTRG).
-	// set ship:control:pitch to pitchPID:UPDATE(time:seconds, ship:up:vector * ship:facing:vector).
-	print ship:control:pitch.
+	set ship:control:pitch to pitchPID:UPDATE(time:seconds, ship:up:vector * ship:facing:vector) + pitchI0.
+	print pitchPID:Iterm.
 }
-sas off.
-until alt:radar > 400 {
-	print ship:control:pitch.
-}
-set ship:control:pitch to 0.
-
-print "cruising altitude reached".
