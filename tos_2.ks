@@ -1,3 +1,7 @@
+//control params
+set heightPID to PIDLOOP(0.05, 0.04, 0.05, -0.3, 0.3).
+set pitchPID to PIDLOOP(1.0, 0.1, 0.5, -1, 1).
+
 // taking off
 brakes on.
 stage.
@@ -16,20 +20,15 @@ set pitchSIN to sin(pitchTRG).
 set ship:control:pitch to 0.5.
 wait until pitchSIN - ship:up:vector * ship:facing:vector < 0.01.
 
+
+
 sas on.
 wait until alt:radar > 25.
 sas off.
+set heightPID:setpoint to 200.
 
-set pitchPID to PIDLOOP(1.0, 0.1, 0.5, -1, 1).
-set pitchI0 to 0.1.
-set pitchPID:setpoint to pitchSIN.
-when alt:radar > 250 then {
-	print "cruising altitude reached".
-	set pitchPID:setpoint to 0.
-}
 until false {
-	// set pitchTRG to min(7.0 + alt:radar / 2, 20.0).
-	// set pitchPID:setpoint to sin(pitchTRG).
-	set ship:control:pitch to pitchPID:UPDATE(time:seconds, ship:up:vector * ship:facing:vector) + pitchI0.
-	print pitchPID:Iterm.
+	set pitchPID:setpoint to heightPID:UPDATE(time:seconds, ship:altitude) + 0.01.
+	set ship:control:pitch to pitchPID:UPDATE(time:seconds, ship:up:vector * ship:facing:vector) + 0.1.
+	// print heightPID:Iterm.
 }
