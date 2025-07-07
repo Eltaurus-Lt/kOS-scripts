@@ -6,6 +6,10 @@ function rollSIN {
 	return lookdirup( facing:vector, up:vector ):starvector * facing:upvector.
 }
 
+function slipSIN {
+	return ship:velocity:surface:normalized * facing:starvector.
+}
+
 function realHEADING {
 	declare parameter about is 0.
 
