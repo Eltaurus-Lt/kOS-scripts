@@ -1,5 +1,6 @@
 // import
 run shipstate.
+run science.
 
 // control params
 set heightPID to PIDLOOP(0.15, 0.04, 0.1, -0.15, 0.3).
@@ -34,6 +35,10 @@ set heightPID:setpoint to 5000.
 when ship:altitude > 500 then {
 	set has_geotarget to true.
 	set geotarget to waypoint("Site 1-KJ29"):geoposition.
+	when geotarget:distance < 5000 then {
+		measureALL().
+		set geotarget to latlng(0.0489,-74.7).
+	}
 }
 when ship:velocity:surface:mag > 250 then {
 	lock throttle to 0.5.

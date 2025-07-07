@@ -32,8 +32,20 @@ function measure {
     if not (module:inoperable or module:deployed or module:hasdata) {
       module:deploy.
       print instumentName + " deployed".
-      return.
+      return module.
     }
   }
   print "all " + instumentName + "s already used".
+}
+
+function measureALL {
+  measure("sensorBarometer").
+  measure("sensorThermometer").
+  local goo to measure("GooExperiment").
+  when goo:hasdata then {
+    local goo to measure("GooExperiment").
+    when goo:hasdata then {
+      measure("GooExperiment").
+    }
+  }
 }
