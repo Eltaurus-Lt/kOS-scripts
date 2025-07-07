@@ -3,7 +3,7 @@ run shipstate.
 run science.
 
 // control params
-set heightPID to PIDLOOP(0.15, 0.04, 0.1, -0.15, 0.3).
+set heightPID to PIDLOOP(0.15, 0.04, 0.1, -0.3, 0.3).
 set headingPID to PIDLOOP(0.02, 0, 0.01, -0.6, 0.6).
 set pitchPID to PIDLOOP(1.0, 0.1, 0.5, -1, 1).
 set rollPID to PIDLOOP(1.0, 0.1, 0.5, -1, 1).
@@ -31,14 +31,20 @@ sas off.
 
 // flight plan
 set t0 to time:seconds.
-set has_geotarget to false.
+set mode to "".
 set heightPID:setpoint to 5000.
 when ship:altitude > 500 then {
-	set has_geotarget to true.
+	set mode to "geotarget".
 	set geotarget to waypoint("Site 1-KJ29"):geoposition.
 	when geotarget:distance < 5000 then {
 		measureALL().
-		set geotarget to latlng(0.0489, -74.7 - 1).
+		set geotarget to latlng(0.0489, -74.7).
+		when geotarget:distance < 30000 then {
+			set mode to "landing approach".
+		}
+		when geotarget:distance < 15000 then {
+			lock throttle to 0.3.
+		}		
 	}
 }
 when ship:velocity:surface:mag > 250 then {
@@ -47,20 +53,34 @@ when ship:velocity:surface:mag > 250 then {
 
 // control loop
 until false {
+	// yaw
 	set ship:control:roll to yawPID:UPDATE(time:seconds, slipSIN()).
 
-	set pitchPID:setpoint to heightPID:UPDATE(time:seconds, ship:altitude) + 0.01.
-	set ship:control:pitch to pitchPID:UPDATE(time:seconds, pitchSIN()) + 0.1.
-
-	print rollPID:setpoint.
-
-	if has_geotarget {
-		set headingPID:setpoint to geotarget:heading.
-		set rollPID:setpoint to headingPID:UPDATE(time:seconds, realHEADING(headingPID:setpoint)).
-		// print "" + geotarget:heading + " " + realHEADING(headingPID:setpoint) + " " + geotarget:distance.
+	// height -> pitch
+	if mode = "landing approach" {
+		set heightPID:setpoint to max(min(geotarget:distance / 5 - 200, 5000), 80).
+		set pitchPID:setpoint to heightPID:UPDATE(time:seconds, ship:altitude).
 	} else {
-		set rollPID:setpoint to 0.
+		set pitchPID:setpoint to heightPID:UPDATE(time:seconds, ship:altitude) + 0.01.
 	}
+	set ship:control:pitch to pitchPID:UPDATE(time:seconds, pitchSIN()) + 0.1.	
+	
+	// heading 
+	if mode = "geotarget" {
+		set headingPID:setpoint to geotarget:heading.
+		print geotarget:distance.
+	} else if mode = "landing approach" {
+		set headingPID:setpoint to 90 - arctan( 0.02 * landingOFS() / ship:velocity:surface:mag ).
+		print ""+ landingOFS() + " " + arctan( 0.02 * landingOFS() / ship:velocity:surface:mag ) + " " + realHEADING() + " " + headingPID:ERROR.
+	} 
+
+	// -> roll
+	if mode = "" {
+		set rollPID:setpoint to 0.
+	} else {
+		set rollPID:setpoint to headingPID:UPDATE(time:seconds, realHEADING(headingPID:setpoint)).
+	}
+
 	set ship:control:roll to rollPID:UPDATE(time:seconds, rollSIN()).
 
 }
