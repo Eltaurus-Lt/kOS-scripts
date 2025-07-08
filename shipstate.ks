@@ -7,7 +7,7 @@ function rollSIN {
 }
 
 function slipSIN {
-	return ship:velocity:surface:normalized * facing:starvector.
+	return - ship:velocity:surface:normalized * facing:starvector.
 }
 
 function Vvert {

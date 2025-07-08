@@ -1,8 +1,6 @@
 // import
 run shipstate.
 
-setBrakes(75).
-
 // control params
 set heightPID to PIDLOOP(0.15, 0.04, 0.1, -0.15, 0.3).
 set headingPID to PIDLOOP(0.04, 0, 0.02, -0.6, 0.6).
@@ -22,6 +20,7 @@ when geotarget:distance < 5000 then {
 }
 when geoposition:lng > geotarget:lng then {
 	set mode to "landing".
+	setBrakes(75).
 	print "landing !!!!".
 	// set downPID:setpoint to -0.001.
 }
