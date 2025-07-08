@@ -11,6 +11,8 @@ set headingPID to PIDLOOP(0.07, 0, 0.04, -0.6, 0.6).
 set rollPID to PIDLOOP(1.0, 0, 2.0, -1, 1).
 set yawPID to PIDLOOP(0.3, 0.02, 2.0, -1, 1).
 
+set speedPID to PIDLOOP(0.01, 0.002, 0.01, 0, 1).
+
 // prep
 sas off.
 brakes on.
@@ -37,19 +39,17 @@ set mode to "".
 set phase to 0.
 
 set heightPID:setpoint to 3000.
-when ship:velocity:surface:mag > 250 then {
-	lock throttle to 0.5.
-}
+set speedPID:setpoint to 250.
+
 when ship:velocity:surface:mag > 200 and ship:altitude > 2900 then {
 	stage.
 	cutChutes().
-	lock throttle to 1.0.
 	set heightPID:setpoint to 12000.
 	set phase to 1.
 }
 
 when ship:altitude > 11000 then {
-	lock throttle to 0.
+	set speedPID:setpoint to 100.
 }
 when ship:velocity:surface:mag < 115 and ship:altitude > 10000 then {
 	openBays().
@@ -59,7 +59,7 @@ when ship:velocity:surface:mag < 115 and ship:altitude > 10000 then {
 		closeBays().
 	}
 	set phase to 2.
-	set heightPID:setpoint to 1000.
+	set heightPID:setpoint to 1500.
 }
 
 when phase = 2 and ship:altitude < 10000 then {
@@ -86,7 +86,10 @@ when phase = 2 and ship:altitude < 10000 then {
 
 // control loop
 until mode = "touchdown" {
-	// print "" + ship:velocity:surface:mag + " " + ship:altitude.
+	lock throttle to speedPID:UPDATE(time:seconds, ship:velocity:surface:mag).
+	if mode <> "landing approach" {
+		print "" + ship:velocity:surface:mag + " " + throttle.
+	}
 
 	// yaw
 	set ship:control:yaw to yawPID:UPDATE(time:seconds, slipSIN()).
