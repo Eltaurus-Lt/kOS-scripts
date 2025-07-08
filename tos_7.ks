@@ -1,5 +1,6 @@
 // import
 run shipstate.
+run shipsystems.
 run science.
 
 // control params
@@ -58,10 +59,10 @@ when ship:velocity:surface:mag < 115 and ship:altitude > 10000 then {
 		closeBays().
 	}
 	set phase to 2.
-	set heightPID:setpoint to 120.
+	set heightPID:setpoint to 1000.
 }
 
-when phase = 2 and ship:altitude < 8000 then {
+when phase = 2 and ship:altitude < 10000 then {
 	
 	set mode to "landing approach".
 	set runwayAZM to -90.
@@ -85,7 +86,7 @@ when phase = 2 and ship:altitude < 8000 then {
 
 // control loop
 until mode = "touchdown" {
-	print "" + ship:velocity:surface:mag + " " + ship:altitude.
+	// print "" + ship:velocity:surface:mag + " " + ship:altitude.
 
 	// yaw
 	set ship:control:yaw to yawPID:UPDATE(time:seconds, slipSIN()).
