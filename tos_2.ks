@@ -45,13 +45,13 @@ when ship:altitude > 250 then {
 			set mode to "landing approach".
 			set geotarget to latlng(0.0489, -74.7 - 0.1).
 			when geotarget:distance > 41000 then {
-				when geotarget:distance < 36100 then {
+				when geotarget:distance < 36080 then {
 					set heightPID:setpoint to 500.
 					lock throttle to 0.
 				}
 			}
 			when geotarget:distance < 3000 then {
-				set heightPID:setpoint to 83.
+				set heightPID:setpoint to 82.
 			}
 			when geoposition:lng > geotarget:lng + 0.01 then {
 				set mode to "landing".
@@ -99,21 +99,28 @@ until mode = "touchdown" {
 		// 	set headingDelta to 20 * headingDelta / abs(headingDelta).
 		// }
 		set headingPID:setpoint to 90 - headingDelta.
-		print "" + ofs0 + " " + headingDelta + " " + headingPID:ERROR + " [" + geotarget:distance + "]".
-			// print "" + rollPID:setpoint + " " + rollPID:ERROR + " | " + ship:control:roll + " | " + rollPID:Pterm + " " + rollPID:Iterm + " " + rollPID:Dterm.
+		// print "" + ofs0 + " " + headingDelta + " " + headingPID:ERROR + " [" + geotarget:distance + "]".
+		// print "" + rollPID:setpoint + " " + rollPID:ERROR + " | " + ship:control:roll + " | " + rollPID:Pterm + " " + rollPID:Iterm + " " + rollPID:Dterm.
 		// print Vvert().	
 	} 
+
 
 	// -> roll
 	if mode = "" {
 		set rollPID:setpoint to 0.
 	} else {
 		set rollPID:setpoint to headingPID:UPDATE(time:seconds, realHEADING(headingPID:setpoint)).
+		print "" + (geoposition:lng - geotarget:lng).
 	}
 
 	set ship:control:roll to rollPID:UPDATE(time:seconds, rollSIN()).
 
 }
 
-wait 2.0.
+
+set ship:control:neutralize to true.
+wait 1.0.
+sas on.
 brakes on.
+wait 2.5.
+setBrakes(100).
