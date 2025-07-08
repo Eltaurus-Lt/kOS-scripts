@@ -21,7 +21,7 @@ wait until ship:velocity:surface:mag > 40.
 
 // take off
 print "take off".
-set ship:control:pitch to 0.5.
+set ship:control:pitch to 0.4.
 set pitchSIN to sin(7.0).
 wait until pitchSIN - ship:up:vector * ship:facing:vector < 0.01.
 sas on.
@@ -33,45 +33,60 @@ sas off.
 // flight plan
 set t0 to time:seconds.
 set mode to "".
+set phase to 0.
+
 set heightPID:setpoint to 3000.
 when ship:velocity:surface:mag > 250 then {
 	lock throttle to 0.5.
 }
 when ship:velocity:surface:mag > 200 and ship:altitude > 2900 then {
-	// openBays().
 	stage.
 	cutChutes().
-	// closeBays().
+	lock throttle to 1.0.
+	set heightPID:setpoint to 12000.
+	set phase to 1.
 }
-when ship:altitude > 250 then {
+
+when ship:altitude > 11000 then {
+	lock throttle to 0.
+}
+when ship:velocity:surface:mag < 115 and ship:altitude > 10000 then {
+	openBays().
+	stage.
+	cutChutes().
+	when ship:altitude < 10000 then {
+		closeBays().
+	}
+	set phase to 2.
+	set heightPID:setpoint to 120.
+}
+
+when phase = 2 and ship:altitude < 8000 then {
 	
-		// when geotarget:distance < 25000 then {
-		// 	set mode to "landing approach".
-		// 	set geotarget to latlng(0.0489, -74.7 - 0.1).
-		// 	when geotarget:distance > 41000 then {
-		// 		when geotarget:distance < 36100 then {
-		// 			set heightPID:setpoint to 500.
-		// 			lock throttle to 0.
-		// 		}
-		// 	}
-		// 	when geotarget:distance < 3000 then {
-		// 		set heightPID:setpoint to 83.
-		// 	}
-		// 	when geoposition:lng > geotarget:lng + 0.01 then {
-		// 		set mode to "landing".
-		// 		setBrakes(75).
-		// 		print "landing".
-		// 	}		
-		// 	when ship:status = "LANDED" then {
-		// 		set mode to "touchdown".
-		// 	}
-		// }
+	set mode to "landing approach".
+	set runwayAZM to -90.
+	set runwayY to 524.
+	set geotarget to latlng(-0.0502, -74.507 - 0.1).
+	setBrakes(75).
+
+	when geotarget:distance < 3000 then {
+		set heightPID:setpoint to 83.
+	}
+	// when geoposition:lng > geotarget:lng + 0.01 then {
+	// 	set mode to "landing".
+	// 	print "landing".
+	// }		
+	when ship:status = "LANDED" then {
+		set mode to "touchdown".
+	}
 
 }
 
 
 // control loop
 until mode = "touchdown" {
+	print "" + ship:velocity:surface:mag + " " + ship:altitude.
+
 	// yaw
 	set ship:control:yaw to yawPID:UPDATE(time:seconds, slipSIN()).
 
@@ -88,7 +103,7 @@ until mode = "touchdown" {
 		set headingPID:setpoint to geotarget:heading.
 		print geotarget:distance + " " + headingPID:ERROR.
 	} else if (mode = "landing approach" or mode = "landing") {
-		set ofs0 to landingOFS().
+		set ofs0 to landingOFS(runwayAZM, runwayY).
 		if (ofs0 > 5) { 
 			set ofs to ofs0 - 5. 
 		} else if (ofs0 < - 5) {
@@ -98,7 +113,7 @@ until mode = "touchdown" {
 		}
 		set headingDelta to arctan( ofs / 3500 ).
 
-		set headingPID:setpoint to 90 - headingDelta.
+		set headingPID:setpoint to runwayAZM - headingDelta.
 		print "" + ofs0 + " " + headingDelta + " " + headingPID:ERROR + " [" + geotarget:distance + "]".
 	} 
 

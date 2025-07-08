@@ -23,8 +23,10 @@ function realHEADING {
 }
 
 function landingOFS {
+	declare parameter azm is 90.
+	declare parameter startY is 512.
 
-	return ship:body:position:y - 512.
+	return sin(azm) * (ship:body:position:y - startY).
 }
 
 
@@ -61,15 +63,17 @@ function closeBays {
 function cutChutes {
 	declare parameter n is -1.
 	local chutes to List().
-	// for chute in ship:partsnamed("parachuteSingle") {
-	// 	chutes:add(chute:getModule("ModuleParachute")).
-	// }
+	for chute in ship:partsnamed("parachuteSingle") {
+		chutes:add(chute:getModule("ModuleParachute")).
+	}
 	for chute in ship:partsnamed("parachuteRadial") {
 		chutes:add(chute:getModule("ModuleParachute")).
 	}
 	if n < 0 {
 		for chute in chutes {
-			chute:doevent("cut parachute").
+			if chute:hasevent("cut parachute") {
+				chute:doevent("cut parachute").
+			}
 		}
 	}
 }
