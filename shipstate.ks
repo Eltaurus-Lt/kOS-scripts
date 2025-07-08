@@ -37,3 +37,39 @@ function setBrakes {
 	}
 	return .
 }
+
+function openBays {
+	declare parameter n is -1.
+	local cargoBays to ship:partsnamed("ServiceBay.125.v2").
+	if n < 0 {
+		for cargoBay in cargoBays {
+			cargoBay:getModule("ModuleAnimateGeneric"):doevent("open").
+		}
+	}
+}
+
+function closeBays {
+	declare parameter n is -1.
+	local cargoBays to ship:partsnamed("ServiceBay.125.v2").
+	if n < 0 {
+		for cargoBay in cargoBays {
+			cargoBay:getModule("ModuleAnimateGeneric"):doevent("close").
+		}
+	}
+}
+
+function cutChutes {
+	declare parameter n is -1.
+	local chutes to List().
+	// for chute in ship:partsnamed("parachuteSingle") {
+	// 	chutes:add(chute:getModule("ModuleParachute")).
+	// }
+	for chute in ship:partsnamed("parachuteRadial") {
+		chutes:add(chute:getModule("ModuleParachute")).
+	}
+	if n < 0 {
+		for chute in chutes {
+			chute:doevent("cut parachute").
+		}
+	}
+}
