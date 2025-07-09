@@ -4,14 +4,14 @@ run shipsystems.
 run science.
 
 // control params
-set heightPID to PIDLOOP(0.07, 0.001, 0.12, -0.18, 0.3).
+set heightPID to PIDLOOP(0.07, 0.001, 0.12, -0.2, 0.3).
 set pitchPID to PIDLOOP(0.2, 0.01, 1.0, -1, 1).
 
 set headingPID to PIDLOOP(0.07, 0, 0.04, -0.6, 0.6).
 set rollPID to PIDLOOP(1.0, 0, 2.0, -1, 1).
 set yawPID to PIDLOOP(0.3, 0.02, 2.0, -1, 1).
 
-set speedPID to PIDLOOP(0.01, 0.002, 0.01, 0, 1).
+set speedPID to PIDLOOP(0.1, 0.01, 0.2, 0, 1).
 
 // prep
 sas off.
@@ -42,41 +42,44 @@ set heightPID:setpoint to 3000.
 set speedPID:setpoint to 250.
 
 when ship:velocity:surface:mag > 200 and ship:altitude > 2900 then {
+	set phase to 1.
 	stage.
 	cutChutes().
 	set heightPID:setpoint to 12000.
-	set phase to 1.
 }
 
 when ship:altitude > 11000 then {
 	set speedPID:setpoint to 100.
 }
 when ship:velocity:surface:mag < 115 and ship:altitude > 10000 then {
+	set phase to 2.
 	openBays().
 	stage.
 	cutChutes().
 	when ship:altitude < 10000 then {
 		closeBays().
 	}
-	set phase to 2.
-	set heightPID:setpoint to 1500.
+	set heightPID:setpoint to 1800.
 }
 
 when phase = 2 and ship:altitude < 10000 then {
-	
+	// landing
 	set mode to "landing approach".
 	set runwayAZM to -90.
 	set runwayY to 524.
 	set geotarget to latlng(-0.0502, -74.507 - 0.1).
 	setBrakes(75).
 
-	when geotarget:distance < 3000 then {
-		set heightPID:setpoint to 83.
+	when geotarget:distance < 15000 then {
+		set heightPID:setpoint to 73.
+		set speedPID:setpoint to 55.
 	}
-	// when geoposition:lng > geotarget:lng + 0.01 then {
-	// 	set mode to "landing".
-	// 	print "landing".
-	// }		
+	when (geoposition:lng - geotarget:lng) * sin(runwayAZM) > 0 then {
+	 	print "landing".
+	 	set heightPID:minoutput to -0.01.
+	 	set heightPID:setpoint to 70.5.
+	 	set speedPID:setpoint to 0.
+	}		
 	when ship:status = "LANDED" then {
 		set mode to "touchdown".
 	}
@@ -108,13 +111,12 @@ until mode = "touchdown" {
 		print geotarget:distance + " " + headingPID:ERROR.
 	} else if (mode = "landing approach" or mode = "landing") {
 		set ofs0 to landingOFS(runwayAZM, runwayY).
-		if (ofs0 > 5) { 
-			set ofs to ofs0 - 5. 
-		} else if (ofs0 < - 5) {
-			set ofs to ofs0 + 5. 
-		} else {
-			set ofs to ofs0.
-		}
+		set ofs to ofs0.
+		// if (ofs0 > 5) { 
+		// 	set ofs to ofs0 - 5. 
+		// } else if (ofs0 < - 5) {
+		// 	set ofs to ofs0 + 5. 
+		// }
 		set headingDelta to arctan( ofs / 3500 ).
 
 		set headingPID:setpoint to runwayAZM - headingDelta.
@@ -132,5 +134,8 @@ until mode = "touchdown" {
 
 }
 
-wait 2.0.
+set ship:control:neutralize to true.
+wait 1.0.
 brakes on.
+wait 5.0.
+setBrakes(100).
