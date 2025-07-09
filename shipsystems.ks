@@ -33,6 +33,9 @@ function cutChutes {
 	for chute in ship:partsnamed("parachuteSingle") {
 		chutes:add(chute:getModule("ModuleParachute")).
 	}
+	for chute in ship:partsnamed("parachuteLarge") {
+		chutes:add(chute:getModule("ModuleParachute")).
+	}
 	for chute in ship:partsnamed("parachuteRadial") {
 		chutes:add(chute:getModule("ModuleParachute")).
 	}
@@ -41,6 +44,22 @@ function cutChutes {
 			if chute:hasevent("cut parachute") {
 				chute:doevent("cut parachute").
 			}
+		}
+	}
+}
+
+function runTests {
+	declare parameter partName is "".
+
+	if (partName <> "") {
+		set parts to ship:partsnamed(partName).
+	} else {
+		set parts to ship:parts.
+	}
+
+	for part in parts {
+		if part:hasmodule("ModuleTestSubject") {
+			part:getModule("ModuleTestSubject"):doevent("run test").
 		}
 	}
 }
