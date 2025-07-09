@@ -23,17 +23,8 @@ function realHEADING {
 }
 
 function landingOFS {
+	declare parameter azm is 90.
+	declare parameter startY is 512.
 
-	return ship:body:position:y - 512.
-}
-
-
-
-function setBrakes {
-	declare parameter brakes is 100.
-	local gears to ship:partsnamed("GearFixed").
-	for gear in gears {
-		gear:getModule("ModuleWheelBrakes"):setField("brakes", brakes).
-	}
-	return .
+	return sin(azm) * (ship:body:position:y - startY).
 }
