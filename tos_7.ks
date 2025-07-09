@@ -64,13 +64,14 @@ when ship:velocity:surface:mag < 115 and ship:altitude > 10000 then {
 
 when phase = 2 and ship:altitude < 10000 then {
 	// landing
-	set mode to "landing approach".
+	set mode to "landing".
 	set runwayAZM to -90.
 	set runwayY to 524.
-	set geotarget to latlng(-0.0502, -74.507 - 0.1).
-	setBrakes(75).
+	set geotarget to latlng(-0.0502, -74.507).
+	setBrakes(50).
 
 	when geotarget:distance < 15000 then {
+		set heightPID:minoutput to -0.1.
 		set heightPID:setpoint to 73.
 		set speedPID:setpoint to 55.
 	}
@@ -89,38 +90,30 @@ when phase = 2 and ship:altitude < 10000 then {
 
 // control loop
 until mode = "touchdown" {
+	// throttle
 	lock throttle to speedPID:UPDATE(time:seconds, ship:velocity:surface:mag).
-	if mode <> "landing approach" {
-		print "" + ship:velocity:surface:mag + " " + throttle.
-	}
 
 	// yaw
 	set ship:control:yaw to yawPID:UPDATE(time:seconds, slipSIN()).
 
 	// height -> pitch
-	if mode = "landing" {
-		set pitchPID:setpoint to 0.06.
-	} else {
-		set pitchPID:setpoint to heightPID:UPDATE(time:seconds, ship:altitude) + 0.01.
-	}
-	set ship:control:pitch to pitchPID:UPDATE(time:seconds, pitchSIN()) + 0.1.// - 0.2 * ship:control:yaw.	
+	set pitchPID:setpoint to heightPID:UPDATE(time:seconds, ship:altitude) + 0.01.
+	set ship:control:pitch to pitchPID:UPDATE(time:seconds, pitchSIN()) + 0.1.
 	
 	// heading 
 	if mode = "geotarget" {
-		set headingPID:setpoint to geotarget:heading.
-		print geotarget:distance + " " + headingPID:ERROR.
-	} else if (mode = "landing approach" or mode = "landing") {
-		set ofs0 to landingOFS(runwayAZM, runwayY).
-		set ofs to ofs0.
-		// if (ofs0 > 5) { 
-		// 	set ofs to ofs0 - 5. 
-		// } else if (ofs0 < - 5) {
-		// 	set ofs to ofs0 + 5. 
-		// }
-		set headingDelta to arctan( ofs / 3500 ).
 
+		set headingPID:setpoint to geotarget:heading.
+
+		print geotarget:distance + " " + headingPID:ERROR.
+	} else if mode = "landing" {
+
+		set ofs to landingOFS(runwayAZM, runwayY).
+		set headingDelta to arctan( ofs / 3500 ).
 		set headingPID:setpoint to runwayAZM - headingDelta.
-		print "" + ofs0 + " " + headingDelta + " " + headingPID:ERROR + " [" + geotarget:distance + "]".
+
+		//print "" + ofs + " " + headingDelta + " " + headingPID:ERROR + " [" + geotarget:distance + "]".
+		print ((geoposition:lng - geotarget:lng) * sin(runwayAZM)).
 	} 
 
 	// -> roll
@@ -135,7 +128,9 @@ until mode = "touchdown" {
 }
 
 set ship:control:neutralize to true.
+lock throttle to 0.
 wait 1.0.
 brakes on.
-wait 5.0.
-setBrakes(100).
+when (ship:velocity:surface:mag < 30) then {
+	setBrakes(100).
+}
