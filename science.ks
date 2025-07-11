@@ -19,7 +19,7 @@ function measure {
 
   local instuments is ship:partsnamed(instumentName).
   if instuments:length = 0 {
-//    print "no " + instumentName + "s onboard".
+    print "no " + instumentName + "s onboard".
     return.
   }
 
@@ -31,7 +31,7 @@ function measure {
     local module is instument:getModule("ModuleScienceExperiment").
     if not (module:inoperable or module:deployed or module:hasdata) {
       module:deploy.
-//      print instumentName + " deployed".
+      print instumentName + " deployed".
       return module.
     }
   }

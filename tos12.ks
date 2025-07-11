@@ -6,18 +6,18 @@ run display.
 
 // control params
 set heightPID to PIDLOOP(0.003, 0.0001, 0.001, -0.2, 0.2).
-set pitchPID to PIDLOOP(1.0, 0.05, 0.01, -1, 1).
-set vvertPID to PIDLOOP(0.002, 0.004, 0, -0.2, 0.2).
+set pitchPID to PIDLOOP(0.5, 0.05, 0.00, -1, 1).
+set vvertPID to PIDLOOP(0.002, 0.004, 0, -0.2, 0.34).
 
 set headingPID to PIDLOOP(0.07, 0, 0.04, -0.6, 0.6).
-set rollPID to PIDLOOP(0.2, 0, 0.01, -1, 1).
+set rollPID to PIDLOOP(0.2, 0.002, 0.01, -1, 1).
 set yawPID to PIDLOOP(0.2, 0.02, 0.1, -1, 1).
 
 set speedPID to PIDLOOP(0.2, 0.02, 0.02, 0, 1).
 set steerPID to PIDLOOP(-0.002, 0, 0, -0.05, 0.05).
 
 // flight plan
-set phase to 1.
+set phase to 4.
 
 set t0 to time:seconds.
 set mode to "landed".
@@ -27,6 +27,8 @@ set turnMODE to "avionics".
 set mult to 1.
 set pitchTRIM to 0.
 set alt0 to 0.
+set ofs to 0.
+set headingDelta to 0.
 set geotarget to geoposition.
 set defPitchD to pitchPID:Kd.
 
@@ -50,7 +52,7 @@ if phase = 0 {
 		set mode to "lift off".
 		set heightPID:setpoint to 10000.
 		when ship:altitude > 150 then {
-			set phase to 1.
+			set phase to phase+1.
 		}
 	}
 }
@@ -64,50 +66,60 @@ when phase = 1 then {
 	set headingMODE to "geotarget".
 	set geotarget to waypoint("Bill's Bane Alpha"):geoposition.
 
-	when geotarget:distance < 80000 then {
-		// KUniverse:PAUSE().
-	}
+	// when geotarget:distance < 80000 then {
+	// 	KUniverse:PAUSE().
+	// }
 
 	when geotarget:distance < 75000 then {
 		// slow down and level
 
-		set speedPID:setpoint to 60.
-		set heightPID:setpoint to 600.
+		set speedPID:setpoint to 40.
+		set heightPID:setpoint to 400.
 		openBays().
 		when ship:velocity:surface:mag < speedPID:setpoint then {
 			closeBays().
 		}
 		setBrakes(50).
+		set rollPID:Ki to 0.
 		
 		// when geotarget:distance < 15000 then {
 		// 	set pitchMODE to "vvert".
 		// 	set vvertPID:setpoint to -1.
 		// }
 
-		// when geotarget:distance < 10000 then {
-		// 	KUniverse:PAUSE.
-		// }
-
-		when geotarget:distance < 9000 then {
-			openBays().
-			set alt0 to (ship:altitude - alt:radar).
-			set pitchMODE to "radar".
-			set vvertPID:setpoint to -1.
-			set headingMODE to "straight".
-			set speedPID:setpoint to 25.
-			set heightPID:setpoint to 150 + alt0.
+		when geotarget:distance < 12000 then {
+			set heightPID:setpoint to 300.
 			set heightPID:minoutput to -0.05.
 		}
 
-		when (geoposition:lng - geotarget:lng) > 0  then {
-			set speedPID:setpoint to 22.
+		// when geotarget:distance < 12500 then {
+		// 	KUniverse:PAUSE.
+		// }
+
+		when geotarget:distance < 4000 then {
+			openBays().
+			set alt0 to (ship:altitude - alt:radar).
+			set pitchMODE to "vvert".
+			set vvertPID:setpoint to -0.15.
+			set headingMODE to "straight".
+			set speedPID:setpoint to 20.
+			// set heightPID:setpoint to 170 + alt0.
+			// set heightPID:minoutput to -0.05.
+		}
+
+		when (geoposition:lng - geotarget:lng) > -0.25  then {
+			set speedPID:setpoint to 17.
 			set pitchMODE to "vvert".
 			set pitchTRIM to heightPID:output.
-			set vvertPID:setpoint to -0.5.
+			set vvertPID:setpoint to -0.1.
+			when alt:radar < 8 then {
+				set speedPID:setpoint to 0.
+				set vvertPID:setpoint to 0.7.
+			}
 		}
 
 		when ship:status = "LANDED" then {
-			set phase to 2.
+			set phase to phase+1.
 			set mode to "landed".
 		}
 	}
@@ -123,16 +135,16 @@ when phase = 2 then {
 	set geotarget to waypoint("Bill's Bane Alpha"):geoposition.
 
 	when geotarget:distance < 300 then {
-		measureALL().
+		measure("sensorThermometer").
 		set geotarget to waypoint("Bill's Bane Beta"):geoposition.
 		when geotarget:distance < 300 then {
 			resetALL().
 			set geotarget to waypoint("Bill's Bane Gamma"):geoposition.
-			measureALL().
+			measure("sensorThermometer").
 			when geotarget:distance < 300 then {
 				resetALL().
-				measureALL().
-				set phase to 3.
+				measure("sensorThermometer").
+				set phase to phase+1.
 			}
 		}
 	}
@@ -140,7 +152,8 @@ when phase = 2 then {
 
 when phase = 3 then {
 	set heightPID to PIDLOOP(0.003, 0.0001, 0.001, -0.2, 0.2).
-	set pitchPID to PIDLOOP(1.0, 0.05, .4, -1, 1).
+	set pitchPID to PIDLOOP(0.5, 0.05, 0.00, -1, 1).
+	set rollPID to PIDLOOP(0.2, 0.002, 0.01, -1, 1).
 
 	clearscreen.
 	set pitchMODE to "absolute".
@@ -158,7 +171,7 @@ when phase = 3 then {
 		set heightPID:setpoint to 10000.
 		when alt:radar > 100 then {
 			set pitchPID:Kd to defPitchD.
-			set phase to 4.
+			set phase to phase+1.
 		}
 	}
 }
@@ -170,38 +183,48 @@ when phase = 4 then {
 
 	set mode to "geotarget".
 	set headingMODE to "geotarget".
-	set geotarget to latlng(0, -60).
-	when geotarget:distance < 30000 then {
-		set phase to 5.
+	set geotarget to latlng(0, -65).
+	when geotarget:distance < 100000 then {
+		set phase to phase+1.
 	}
 }
 
-// when phase = 5 then {
-// 	// landing
-// 	set mode to "landing".
-// 	set heightPID:setpoint to 500.
-// 	set speedPID:setpoint to 65.
-// 	set runwayAZM to -90.
-// 	set runwayY to 524.
-// 	set geotarget to latlng(-0.0502, -74.507).
-// 	setBrakes(50).
+when phase = 5 then {
+	// landing
+	set headingMODE to "runway approach".
+	set runwayAZM to -90.
+	set runwayY to 524.
+	set geotarget to latlng(-0.0502, -74.507).
+	setBrakes(50).
 
-// 	when geotarget:distance < 4000 then {
-// 		set heightPID:minoutput to -0.1.
-// 		set heightPID:setpoint to 73.
-// 		set speedPID:setpoint to 55.
-// 	}
-// 	when (geoposition:lng - geotarget:lng) * sin(runwayAZM) > 0 then {
-// 	 	print "landing".
-// 	 	set heightPID:minoutput to -0.01.
-// 	 	set heightPID:setpoint to 70.5.
-// 	 	set speedPID:setpoint to 0.
-// 	}		
-// 	when ship:status = "LANDED" then {
-// 		set mode to "touchdown".
-// 	}
+	// when geotarget:distance < 80000 then {
+	// 	KUniverse:PAUSE.
+	// }
 
-// }
+	when geotarget:distance < 70000 then {
+		set heightPID:setpoint to 75.
+		set speedPID:setpoint to 60.
+		openBays().
+		when ship:velocity:surface:mag < speedPID:setpoint then {
+			closeBays().
+		}
+	}
+
+	when geotarget:distance < 7000 then {
+		set heightPID:minoutput to -0.1.
+		set speedPID:setpoint to 38.
+	}
+	when (geoposition:lng - geotarget:lng) * sin(runwayAZM) > 0 then {
+	 	set heightPID:minoutput to -0.01.
+	 	set heightPID:setpoint to 70.5.
+	 	set speedPID:setpoint to 0.
+	}		
+	when ship:status = "LANDED" then {
+		openBays().
+		set phase to phase+1.
+	}
+
+}
 
 
 
@@ -256,10 +279,10 @@ until phase = 6 {
 		} else {
 			set headingPID:setpoint to geotarget:heading.
 		}
-	} else if mode = "landing" {
+	} else if headingMODE = "runway approach" {
 
 		set ofs to landingOFS(runwayAZM, runwayY).
-		set headingDelta to arctan( ofs / 3000 ).
+		set headingDelta to arctan( ofs / max(geotarget:distance / 3, 3000) ).
 		set headingPID:setpoint to runwayAZM - headingDelta.
 	}
 
@@ -283,6 +306,8 @@ set ship:control:neutralize to true.
 set ship:control:mainthrottle to 0.
 lock throttle to 0.
 brakes on.
+wait 3.0.
+setBrakes(75).
 wait until ship:velocity:surface:mag < 1.0.
-
-KUniverse:PAUSE().
+closeBays().
+wait 5.0.
