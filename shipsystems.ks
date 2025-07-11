@@ -12,7 +12,10 @@ function openBays {
 	local cargoBays to ship:partsnamed("ServiceBay.125.v2").
 	if n < 0 {
 		for cargoBay in cargoBays {
-			cargoBay:getModule("ModuleAnimateGeneric"):doevent("open").
+			local module to cargoBay:getModule("ModuleAnimateGeneric").
+			if module:hasevent("open") {
+				module:doevent("open").
+			}
 		}
 	}
 }
@@ -22,7 +25,10 @@ function closeBays {
 	local cargoBays to ship:partsnamed("ServiceBay.125.v2").
 	if n < 0 {
 		for cargoBay in cargoBays {
-			cargoBay:getModule("ModuleAnimateGeneric"):doevent("close").
+			local module to cargoBay:getModule("ModuleAnimateGeneric").
+			if module:hasevent("close") {
+				module:doevent("close").
+			}
 		}
 	}
 }

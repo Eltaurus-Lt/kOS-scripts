@@ -2,25 +2,29 @@
 run shipstate.
 run shipsystems.
 run science.
+run display.
 
 // control params
-set heightPID to PIDLOOP(0.01, 0.001, 0.01, -0.2, 0.2).
-set pitchPID to PIDLOOP(1.0, 0.05, 0.1, -1, 1).
+set heightPID to PIDLOOP(0.003, 0.0001, 0.001, -0.2, 0.2).
+set pitchPID to PIDLOOP(1.0, 0.05, 0.01, -1, 1).
+set vvertPID to PIDLOOP(0.002, 0.002, 0, -0.2, 0.2).
 
 set headingPID to PIDLOOP(0.07, 0, 0.04, -0.6, 0.6).
 set rollPID to PIDLOOP(0.2, 0, 0.01, -1, 1).
 set yawPID to PIDLOOP(0.2, 0.02, 0.1, -1, 1).
 
-set speedPID to PIDLOOP(0.2, 0.02, 0.2, 0, 1).
+set speedPID to PIDLOOP(0.2, 0.02, 0.02, 0, 1).
 
 // flight plan
 set phase to 1.
 
 set t0 to time:seconds.
 set mode to "landed".
-set altitudeMODE to "absolute".
+set pitchMODE to "absolute".
+set headingMODE to "straight".
 set mult to 1.
 set pitchTRIM to 0.
+set alt0 to 0.
 set geotarget to geoposition.
 
 if phase = 0 {
@@ -49,32 +53,54 @@ if phase = 0 {
 
 when phase = 1 and ship:altitude > 150 then {
 	set phase to 2.
+	set speedPID:setpoint to 350.
 	set heightPID:setpoint to 12000.
 	set pitchTRIM to 0.
 
 	set mode to "geotarget".
+	set headingMODE to "geotarget".
 	set geotarget to waypoint("Bill's Bane Alpha"):geoposition.
 
-	when geotarget:distance < 60000 then {
-		// slow-level phase
-		set speedPID:setpoint to 50.
-		set heightPID:setpoint to 350.
+	when geotarget:distance < 80000 then {
+		// KUniverse:PAUSE().
+	}
+
+	when geotarget:distance < 75000 then {
+		// slow down and level
+
+		set speedPID:setpoint to 60.
+		set heightPID:setpoint to 600.
+		openBays().
+		when ship:velocity:surface:mag < speedPID:setpoint then {
+			closeBays().
+		}
 		setBrakes(50).
-		when ship:velocity:surface:mag < 70 then {
-			set altitudeMODE to "radar".
-			// close-envelope phase
-			set pitchPID:Kp to 1.0.
-			set speedPID:setpoint to 45.
-			set heightPID:setpoint to 50.
+		
+		// when geotarget:distance < 15000 then {
+		// 	set pitchMODE to "vvert".
+		// 	set vvertPID:setpoint to -1.
+		// }
+
+		// when geotarget:distance < 10000 then {
+		// 	KUniverse:PAUSE.
+		// }
+
+		when geotarget:distance < 10000 then {
+			openBays().
+			set alt0 to (ship:altitude - alt:radar).
+			set pitchMODE to "radar".
+			set vvertPID:setpoint to -1.
+			set headingMODE to "straight".
+			set speedPID:setpoint to 25.
+			set heightPID:setpoint to 100 + alt0.
 			set heightPID:minoutput to -0.05.
-			when throttle > 0 and ship:velocity:surface:mag > speedPID:setpoint and heightPID:changerate > 0 then {
-				// descent phase
-				set speedPID:setpoint to 37.
-				set heightPid:setpoint to 40.
-				when alt:radar < 3.5 then {
-					set pitchTRIM to 0.5.
-				}
-			}
+		}
+
+		when geotarget:distance < 4000 then {
+			set speedPID:setpoint to 22.
+			set pitchMODE to "vvert".
+			set pitchTRIM to heightPID:output.
+			set vvertPID:setpoint to -1.
 		}
 
 		when ship:status = "LANDED" then {
@@ -132,6 +158,8 @@ until phase = 3 {
 	set speedNOW to ship:velocity:surface:mag.
 	set pitchNOW to pitchSIN().
 
+	set cm to  mult * 100 / max(speedNOW, 30).
+
 	// throttle
 	lock throttle to speedPID:UPDATE(time:seconds, speedNOW).
 
@@ -139,40 +167,38 @@ until phase = 3 {
 	if mode = "landed" {
 		set ship:control:yaw to 0.
 	} else {
-		set ship:control:yaw to mult * yawPID:UPDATE(time:seconds, slipSIN()) * 100 / speedNOW.
+		set ship:control:yaw to cm * yawPID:UPDATE(time:seconds, slipSIN()).
 	}
 
 	// height -> pitch
-	if altitudeMODE = "radar" {
-		set altitudeNOW to ship:altitude.
+	if pitchMODE = "vvert" {
+		set pitchPID:setpoint to vvertPID:UPDATE(time:seconds, Vvert()).
 	} else {
-		set altitudeNOW to alt:radar.
+		if pitchMODE = "radar" {
+			set altitudeNOW to alt:radar + alt0.
+		} else {
+			set altitudeNOW to ship:altitude.
+		}
+		set pitchPID:setpoint to heightPID:UPDATE(time:seconds, altitudeNOW).
 	}
-	set pitchPID:setpoint to heightPID:UPDATE(time:seconds, altitudeNOW).
 	if mode = "landed" {
 		set ship:control:pitch to 0.
 	} else {
-		set ship:control:pitch to mult * pitchPID:UPDATE(time:seconds, pitchNOW) * 100 / speedNOW + pitchTRIM.
+		set ship:control:pitch to cm * (pitchPID:UPDATE(time:seconds, pitchNOW) + pitchTRIM).
 	}
 	
 	// heading 
-	if mode = "geotarget" {
-
+	if headingMODE = "geotarget" {
 		set headingPID:setpoint to geotarget:heading.
-
-		
 	} else if mode = "landing" {
 
 		set ofs to landingOFS(runwayAZM, runwayY).
 		set headingDelta to arctan( ofs / 3000 ).
 		set headingPID:setpoint to runwayAZM - headingDelta.
-
-		// print "" + ofs + " " + headingDelta + " " + headingPID:ERROR + " [" + geotarget:distance + "]".
-		// print ((geoposition:lng - geotarget:lng) * sin(runwayAZM)).
 	}
 
 	// -> roll
-	if mode = "lift off" {
+	if headingMODE = "straight" {
 		set rollPID:setpoint to 0.
 	} else {
 		set rollPID:setpoint to headingPID:UPDATE(time:seconds, realHEADING(headingPID:setpoint)).
@@ -180,71 +206,19 @@ until phase = 3 {
 	if mode = "landed" {
 		set ship:control:roll to 0.
 	} else {
-		set ship:control:roll to mult * rollPID:UPDATE(time:seconds, rollSIN()) * 100 / speedNOW.
+		set ship:control:roll to cm * rollPID:UPDATE(time:seconds, rollSIN()).
 	}
 
 
-	// clearscreen.
-	print mode + ": " at(1,1).
-	if mode = "geotarget" {
-		set distanceNOW to geotarget:distance.
-		if distanceNOW < 10000 {
-			set distanceSTR to disp(distanceNOW):trimend + "m".
-		} else {
-			set distanceSTR to disp(distanceNOW / 1000):trimend + "km".
-		}
-		set etaNOW to geotarget:distance / ship:velocity:surface:mag.
-		if etaNOW < 150 {
-			set etaSTR to disp(etaNOW):trimend + "s".
-		} else if etaNOW < 150 * 60 {
-			set etaSTR to disp(etaNOW / 60):trimend + "m".
-		} else {
-			set etaSTR to disp(etaNOW / 3600):trimend + "h".
-		}
-		print distanceSTR + " (eta: " + etaSTR + ")" at(7,2).
-	}
-	print "=============================================" at(1,3).
-	print "height" at (5,5).
-	print disp(alt:radar) at (7, 8).
-
-	print "set: " + disp(heightPID:setpoint) at (15, 6).
-	print "err: " + disp(-heightPID:error) at (15, 8).
-	print "out: " + disp(heightPID:output) at (15, 10).
-
-	print "P: " + disp(heightPID:Pterm) at (30, 6).
-	print "I: " + disp(heightPID:Iterm) at (30, 8).
-	print "D: " + disp(heightPID:Dterm) at (30, 10).
-
-
-	print "pitch(sin)" at (5,15).
-	print disp(pitchNOW) at (7, 18).
-
-	print "set: " + disp(pitchPID:setpoint) at (15, 16).
-	print "err: " + disp(-pitchPID:error) at (15, 18).
-	print "out: " + disp(pitchPID:output) at (15, 20).
-	print "ctrl: " + disp(ship:control:pitch) at (14, 22).
-
-	print "P: " + disp(pitchPID:Pterm) at (30, 16).
-	print "I: " + disp(pitchPID:Iterm) at (30, 18).
-	print "D: " + disp(pitchPID:Dterm) at (30, 20).
-
-	print "speed" at (5, 25).
-	print disp(speedNOW) at (7, 28).
-
-	print "set: " + disp(speedPID:setpoint) at (15, 26).
-	print "err: " + disp(-speedPID:error) at (15, 28).
-	print "out: " + disp(speedPID:output) at (15, 30).
-	print "ctrl: " + disp(throttle) at (14, 32).
-
-	print "P: " + disp(speedPID:Pterm) at (30, 26).
-	print "I: " + disp(speedPID:Iterm) at (30, 28).
-	print "D: " + disp(speedPID:Dterm) at (30, 30).
+	display().
 }
 
 set ship:control:neutralize to true.
 set ship:control:mainthrottle to 0.
-wait 0.5.
+lock throttle to 0.
+wait 2.0.
 brakes on.
 wait until ship:velocity:surface:mag < 1.0.
+closeBays().
 
-wait 5.0.
+KUniverse:PAUSE().
