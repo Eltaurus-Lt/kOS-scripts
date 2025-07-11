@@ -19,7 +19,7 @@ when geotarget:distance < 100 then {
 		resetALL().
 		set geotarget to waypoint("Bill's Bane Gamma"):geoposition.
 		measureALL().
-		when geotarget:distance < 100 then {
+		when geotarget:distance < 450 then {
 			resetALL().
 			measureALL().
 			set phase to 4.
