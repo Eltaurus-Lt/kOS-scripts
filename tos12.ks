@@ -17,7 +17,7 @@ set speedPID to PIDLOOP(0.2, 0.02, 0.02, 0, 1).
 set steerPID to PIDLOOP(-0.002, 0, 0, -0.05, 0.05).
 
 // flight plan
-set phase to 4.
+set phase to 0.
 
 set t0 to time:seconds.
 set mode to "landed".
@@ -82,19 +82,14 @@ when phase = 1 then {
 		setBrakes(50).
 		set rollPID:Ki to 0.
 		
-		// when geotarget:distance < 15000 then {
-		// 	set pitchMODE to "vvert".
-		// 	set vvertPID:setpoint to -1.
+		// when geotarget:distance < 12500 then {
+		// 	KUniverse:PAUSE.
 		// }
 
 		when geotarget:distance < 12000 then {
 			set heightPID:setpoint to 300.
 			set heightPID:minoutput to -0.05.
 		}
-
-		// when geotarget:distance < 12500 then {
-		// 	KUniverse:PAUSE.
-		// }
 
 		when geotarget:distance < 4000 then {
 			openBays().
@@ -150,6 +145,7 @@ when phase = 2 then {
 	}
 }
 
+// return take off
 when phase = 3 then {
 	set heightPID to PIDLOOP(0.003, 0.0001, 0.001, -0.2, 0.2).
 	set pitchPID to PIDLOOP(0.5, 0.05, 0.00, -1, 1).
