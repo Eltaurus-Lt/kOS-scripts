@@ -13,7 +13,7 @@ set headingPID to PIDLOOP(0.07, 0, 0.04, -0.6, 0.6).
 set rollPID to PIDLOOP(0.2, 0.002, 0.01, -1, 1).
 set yawPID to PIDLOOP(0.2, 0.02, 0.1, -1, 1).
 
-set speedPID to PIDLOOP(0.1, 0.05, 0.01, 0, 1).
+set speedPID to PIDLOOP(0.1, 0.05, 0.05, 0, 1).
 set steerPID to PIDLOOP(-0.002, 0, 0, -0.05, 0.05).
 
 // flight plan
@@ -45,9 +45,13 @@ if phase = 0 {
 	}
 
 	set heightPID:maxoutput to 0.5.
-	when ship:velocity:surface:mag > 70 then {
+	when ship:velocity:surface:mag > 75 then {
 		set mode to "lift off".
 		set pitchMODE to "alt sea".
+		set pitchTRIM to 0.3.
+		when alt:radar > 3 then {
+			set pitchTRIM to 0.
+		}
 		when ship:altitude > 150 then {
 			set heightPID:maxoutput to 0.2.
 			set phase to phase+1.
@@ -58,7 +62,6 @@ if phase = 0 {
 when phase = 1 then {
 	set speedPID:setpoint to 350.
 	set heightPID:setpoint to 11000.
-	set pitchTRIM to 0.
 
 	set headingMODE to "geotarget".
 	set geotarget to waypoint("Site WVTJ8V"):geoposition.
@@ -98,19 +101,20 @@ when phase = 3 then {
 	// landing
 	set pitchMODE to "alt sea".
 	set headingMODE to "runway approach".
-	set speedPID:setpoint to 250.
+	set speedPID:setpoint to 300.
 	set heightPID:setpoint to 2000.
 	set runwayAZM to -90.
 	set runwayY to 524.
 	set geotarget to latlng(-0.0502, -74.507).
-	setBrakes(50).
+	setBrakes(35).
 
-	when geotarget:distance < 25000 then {
-		set heightPID:setpoint to 75.
+	when geotarget:distance < 30000 then {
+		set heightPID:setpoint to 100.
 		set speedPID:setpoint to 70.
 	}
 
-	when geotarget:distance < 7000 then {
+	when geotarget:distance < 10000 then {
+		set heightPID:setpoint to 75.
 		set heightPID:minoutput to -0.1.
 		set speedPID:setpoint to 40.
 	}
@@ -201,10 +205,11 @@ until phase = 4 {
 	display().
 }
 
+display().
 set ship:control:neutralize to true.
 set ship:control:mainthrottle to 0.
 lock throttle to 0.
-wait 3.0.
+wait 5.0.
 brakes on.
 wait until ship:velocity:surface:mag < 1.0.
 wait 5.0.
