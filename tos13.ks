@@ -101,22 +101,22 @@ when phase = 3 then {
 	// landing
 	set pitchMODE to "alt sea".
 	set headingMODE to "runway approach".
-	set speedPID:setpoint to 300.
+	set speedPID:setpoint to 350.
 	set heightPID:setpoint to 2000.
 	set runwayAZM to -90.
 	set runwayY to 524.
 	set geotarget to latlng(-0.0502, -74.507).
-	setBrakes(35).
+	setBrakes(30).
 
 	when geotarget:distance < 30000 then {
 		set heightPID:setpoint to 100.
 		set speedPID:setpoint to 70.
 	}
 
-	when geotarget:distance < 10000 then {
+	when geotarget:distance < 8000 then {
 		set heightPID:setpoint to 75.
 		set heightPID:minoutput to -0.1.
-		set speedPID:setpoint to 40.
+		set speedPID:setpoint to 50.
 	}
 	when (geoposition:lng - geotarget:lng) * sin(runwayAZM) > 0 then {
 	 	set heightPID:minoutput to -0.005.
@@ -209,7 +209,7 @@ display().
 set ship:control:neutralize to true.
 set ship:control:mainthrottle to 0.
 lock throttle to 0.
-wait 5.0.
+wait 6.0.
 brakes on.
 wait until ship:velocity:surface:mag < 1.0.
 wait 5.0.
