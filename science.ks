@@ -42,10 +42,25 @@ function measureALL {
   measure("sensorBarometer").
   measure("sensorThermometer").
   local goo to measure("GooExperiment").
-  when goo:hasdata then {
-    local goo to measure("GooExperiment").
+  if goo <> 0 {
     when goo:hasdata then {
-      measure("GooExperiment").
+      set goo to measure("GooExperiment").
+      if goo <> 0 {
+        when goo:hasdata then {
+          measure("GooExperiment").
+        }
+      }
+    }
+  }
+}
+
+function resetALL {
+  local parts to ship:parts.
+
+  for part in parts {
+    if part:hasModule("ModuleScienceExperiment") {
+      part:getModule("ModuleScienceExperiment"):reset.
+      print part:name + " reset".
     }
   }
 }
