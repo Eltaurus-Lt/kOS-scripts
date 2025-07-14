@@ -22,15 +22,29 @@ function openBays {
 
 function closeBays {
 	declare parameter n is -1.
-	local cargoBays to ship:partsnamed("ServiceBay.125.v2").
+
+	local partsWithDoors to LIST().
+
+	for part in ship:partsnamed("ServiceBay.125.v2") {
+		partsWithDoors:add(part).
+	}
+	for part in ship:partsnamed("science.module") {
+		partsWithDoors:add(part).
+	}
+
+
 	if n < 0 {
-		for cargoBay in cargoBays {
-			local module to cargoBay:getModule("ModuleAnimateGeneric").
+		for part in partsWithDoors {
+			local module to part:getModule("ModuleAnimateGeneric").
 			if module:hasevent("close") {
 				module:doevent("close").
 			}
+			if module:hasevent("close doors") {
+				module:doevent("close doors").
+			}
 		}
 	}
+
 }
 
 function cutChutes {
@@ -69,3 +83,10 @@ function runTests {
 		}
 	}
 }
+
+function powerDown {
+	set module to ship:partsnamed("KR-2042")[0]:getModule("kOSProcessor").
+	module:doevent("toggle power").
+}
+
+
