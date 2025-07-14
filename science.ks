@@ -41,6 +41,11 @@ function measure {
 function measureALL {
   measure("sensorBarometer").
   measure("sensorThermometer").
+
+  measure("science.module").
+  // wait 2.0.
+  // measure("science.module").
+
   local goo to measure("GooExperiment").
   if goo <> 0 {
     when goo:hasdata then {
@@ -61,6 +66,20 @@ function resetALL {
     if part:hasModule("ModuleScienceExperiment") {
       part:getModule("ModuleScienceExperiment"):reset.
       print part:name + " reset".
+    }
+  }
+}
+
+function transmitALL {
+  local parts to ship:parts.
+
+  for part in parts {
+    if part:hasModule("ModuleScienceExperiment") {
+      local module to part:getModule("ModuleScienceExperiment").
+      if module:hasdata {
+        module:transmit.
+        print part:name + "'s data transmitted".
+      }
     }
   }
 }
