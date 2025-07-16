@@ -83,3 +83,34 @@ function transmitALL {
     }
   }
 }
+
+
+function storeAll {
+  parameter containerN is 0.
+
+  local containers to getPartList(LIST("ScienceBox")).
+
+  if containers:length <= containerN {
+    print "no container with such number".
+    return.
+  }
+
+  local container to containers[containerN].
+
+  container:getModule("ModuleScienceContainer"):collectAll.
+}
+
+
+function getPartList {
+  parameter nameList.
+
+  local parts to LIST().
+
+  for partName in nameList {
+    for part in ship:partsnamed(partName) {
+      parts:add(part).
+    }
+  }
+
+  return parts.
+}

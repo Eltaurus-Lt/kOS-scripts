@@ -1,6 +1,22 @@
+function getPartList {
+	parameter nameList.
+
+	local parts to LIST().
+
+	for partName in nameList {
+		for part in ship:partsnamed(partName) {
+			parts:add(part).
+		}
+	}
+
+	return parts.
+}
+
 function setBrakes {
-	declare parameter brakes is 100.
-	local gears to ship:partsnamed("GearFixed").
+	parameter brakes is 100.
+
+	local gears to getPartList(LIST("GearFixed", "SmallGearBay")).
+
 	for gear in gears {
 		gear:getModule("ModuleWheelBrakes"):setField("brakes", brakes).
 	}
@@ -8,7 +24,8 @@ function setBrakes {
 }
 
 function openBays {
-	declare parameter n is -1.
+	parameter n is -1.
+
 	local cargoBays to ship:partsnamed("ServiceBay.125.v2").
 	if n < 0 {
 		for cargoBay in cargoBays {
@@ -21,17 +38,9 @@ function openBays {
 }
 
 function closeBays {
-	declare parameter n is -1.
+	parameter n is -1.
 
-	local partsWithDoors to LIST().
-
-	for part in ship:partsnamed("ServiceBay.125.v2") {
-		partsWithDoors:add(part).
-	}
-	for part in ship:partsnamed("science.module") {
-		partsWithDoors:add(part).
-	}
-
+	local partsWithDoors to getPartList(LIST("ServiceBay.125.v2", "science.module")).
 
 	if n < 0 {
 		for part in partsWithDoors {
@@ -79,7 +88,10 @@ function runTests {
 
 	for part in parts {
 		if part:hasmodule("ModuleTestSubject") {
-			part:getModule("ModuleTestSubject"):doevent("run test").
+			local module to part:getModule("ModuleTestSubject").
+			if module:hasevent("run test") {
+				module:doevent("run test").
+			}
 		}
 	}
 }
@@ -88,5 +100,3 @@ function powerDown {
 	set module to ship:partsnamed("KR-2042")[0]:getModule("kOSProcessor").
 	module:doevent("toggle power").
 }
-
-
