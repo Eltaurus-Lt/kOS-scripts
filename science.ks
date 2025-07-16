@@ -41,6 +41,11 @@ function measure {
 function measureALL {
   measure("sensorBarometer").
   measure("sensorThermometer").
+
+  measure("science.module").
+  // wait 2.0.
+  // measure("science.module").
+
   local goo to measure("GooExperiment").
   if goo <> 0 {
     when goo:hasdata then {
@@ -63,4 +68,49 @@ function resetALL {
       print part:name + " reset".
     }
   }
+}
+
+function transmitALL {
+  local parts to ship:parts.
+
+  for part in parts {
+    if part:hasModule("ModuleScienceExperiment") {
+      local module to part:getModule("ModuleScienceExperiment").
+      if module:hasdata {
+        module:transmit.
+        print part:name + "'s data transmitted".
+      }
+    }
+  }
+}
+
+
+function storeAll {
+  parameter containerN is 0.
+
+  local containers to getPartList(LIST("ScienceBox")).
+
+  if containers:length <= containerN {
+    print "no container with such number".
+    return.
+  }
+
+  local container to containers[containerN].
+
+  container:getModule("ModuleScienceContainer"):collectAll.
+}
+
+
+function getPartList {
+  parameter nameList.
+
+  local parts to LIST().
+
+  for partName in nameList {
+    for part in ship:partsnamed(partName) {
+      parts:add(part).
+    }
+  }
+
+  return parts.
 }
