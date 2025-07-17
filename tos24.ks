@@ -8,6 +8,9 @@ run display.
 function setPIDs {
 	set altPID to PIDLOOP(0.01, 0.1, 0.2, 0, 1).
 	set speedPID to PIDLOOP(0.5, 0.05, 0.0, 0, 1).
+
+	set pitchPID to PIDLOOP(10.0, 0.1, 5.0, -1, 1).
+	set yawPID to PIDLOOP(10.0, 0.1, 5.0, -1, 1).
 }
 
 set phase to 0.
@@ -15,12 +18,16 @@ set t0 to time:seconds.
 
 setPIDs().
 stage.
-sas on.
+
 
 set altPID:setpoint to 1000.
 set throttleMODE to "alt".
 
 set speedPID:setpoint to 200.
+
+// when ship:altitude > 100 then {
+// 	set pitchPID:setpoint to 0.2.
+// }
 
 when time:seconds - t0 > 37 then {
 	set altPID:setpoint to 75.
@@ -39,6 +46,7 @@ until phase = -1 {
 	set gt to engine[0]:possiblethrust / ship:mass.
 
 
+	// throttle
 	if throttleMODE = "speed" {
 		lock throttle to speedPID:UPDATE(time:seconds, Vvert()).
 	}　else if throttleMODE = "alt" {
@@ -56,6 +64,11 @@ until phase = -1 {
 	} if throttleMODE = "altAGN" {
 		lock throttle to altPID:UPDATE(time:seconds, ship:altitude).
 	}
+
+	// tilt
+	set ship:control:pitch to - pitchPID:UPDATE(time:seconds, polarSIN()).
+	set ship:control:yaw to - yawPID:UPDATE(time:seconds, yawSIN()).
+
 
 	print Vvert() + "    " at (25, 1).
 	print gt + "    " at (25, 2).

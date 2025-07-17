@@ -10,6 +10,14 @@ function slipSIN {
 	return - ship:velocity:surface:normalized * facing:starvector.
 }
 
+function polarSIN { //pitch relative to vertical
+	return up:vector * facing:upvector.
+}
+
+function yawSIN {
+	return up:vector * facing:starvector.
+}
+
 function Vvert {
 	return ship:velocity:surface * up:vector.
 }
