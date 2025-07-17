@@ -22,6 +22,10 @@ function Vvert {
 	return ship:velocity:surface * up:vector.
 }
 
+function rollOMEGA {
+	return ship:angularvel * facing:vector.
+}
+
 function realHEADING {
 	declare parameter about is 0.
 

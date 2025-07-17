@@ -11,6 +11,8 @@ function setPIDs {
 
 	set pitchPID to PIDLOOP(10.0, 0.1, 5.0, -1, 1).
 	set yawPID to PIDLOOP(10.0, 0.1, 5.0, -1, 1).
+
+	set rollPID to PIDLOOP(1.0, 0.01, 0.5, -1, 1).
 }
 
 set phase to 0.
@@ -27,6 +29,10 @@ set speedPID:setpoint to 200.
 
 // when ship:altitude > 100 then {
 // 	set pitchPID:setpoint to 0.2.
+// }
+
+// when ship:altitude > 700 then {
+// 	set yawPID:setpoint to 0.2.
 // }
 
 when time:seconds - t0 > 37 then {
@@ -69,6 +75,8 @@ until phase = -1 {
 	set ship:control:pitch to - pitchPID:UPDATE(time:seconds, polarSIN()).
 	set ship:control:yaw to - yawPID:UPDATE(time:seconds, yawSIN()).
 
+	// roll
+	set ship:control:roll to - rollPID:UPDATE(time:seconds, rollOMEGA()).
 
 	print Vvert() + "    " at (25, 1).
 	print gt + "    " at (25, 2).
