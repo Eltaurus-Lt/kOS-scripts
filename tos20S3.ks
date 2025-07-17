@@ -22,9 +22,9 @@ function setPIDs {
 
 // flight plan
 set phase to 0.
-set phase to 3.
-set phase to 4.
-set phase to 5.
+// set phase to 3.
+// set phase to 4.
+// set phase to 5.
 
 setPIDs().
 set t0 to time:seconds.
@@ -158,18 +158,19 @@ when phase = 2 then {
 		lights off.
 		openBays().
 
-		print "".
-		print "----------------------------------".
-		print "1. take cabin report".
-		print "2. transmit cabin report".
-		print "2. clean goo + module".
-		print "3. take EVA report".
-		print "4. transmit EVA report".
-		print "----------------------------------".
-		print "".
-		powerDown().
-
-		set phase to phase+1.
+		// print "".
+		// print "----------------------------------".
+		// print "1. take cabin report".
+		// print "2. transmit cabin report".
+		// print "2. clean goo + module".
+		// print "3. take EVA report".
+		// print "4. transmit EVA report".
+		// print "----------------------------------".
+		// print "".
+		// powerDown().
+		
+		wait 10.0.
+		set phase to 5.
 
 	}
 }
@@ -292,7 +293,7 @@ when phase = 6 then {
 	}
 
 	when (geoposition:lng - geotarget:lng) * sin(runwayAZM) > 0 then {
-	 	set heightPID:minoutput to -0.003.
+	 	set heightPID:minoutput to -0.0015.
 	 	set heightPID:setpoint to 70.5.
 	 	set speedPID:setpoint to 0.
 	}		
