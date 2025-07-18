@@ -6,13 +6,15 @@ run display.
 
 // control params
 function setPIDs {
-	set altPID to PIDLOOP(0.01, 0.1, 0.2, 0, 1).
-	set speedPID to PIDLOOP(0.5, 0.05, 0.0, 0, 1).
+	set altPID to PIDLOOP(0.01, 0.2, 0.1, 0.1, 1).
+	set speedPID to PIDLOOP(0.5, 0.1, 0.0, 0.1, 1).
 
 	set pitchPID to PIDLOOP(10.0, 0.1, 5.0, -1, 1).
 	set yawPID to PIDLOOP(10.0, 0.1, 5.0, -1, 1).
 
 	set rollPID to PIDLOOP(1.0, 0.01, 0.5, -1, 1).
+
+	set tiltPID to PIDLOOP(0.002, 0.001, 0.05, 0, 0.005).
 }
 
 set phase to 0.
@@ -21,9 +23,10 @@ set t0 to time:seconds.
 setPIDs().
 stage.
 
-
+set geotarget to geoposition.
 set altPID:setpoint to 1000.
 set throttleMODE to "alt".
+set tiltMODE to "geotarget".
 
 set speedPID:setpoint to 200.
 
@@ -36,7 +39,10 @@ set speedPID:setpoint to 200.
 // }
 
 when time:seconds - t0 > 37 then {
-	set altPID:setpoint to 75.
+	set altPID:setpoint to 77.
+	when geodistance(geotarget, geoposition) < 2 and ship:altitude < altPID:setpoint then {
+		set altPID:setpoint to 75.
+	}
 	when ship:status = "LANDED" then {
 		set phase to -1.
 	}
@@ -60,9 +66,9 @@ until phase = -1 {
 		set deltaH to altPID:setpoint - ship:altitude.
 
 		if deltaH > 0 {
-			set speedPID:setpoint to 1.02 * sqrt( 2 * g1 * deltaH ).
+			set speedPID:setpoint to 1.02 * sqrt( 2 * (g1 - speedPID:minoutput * gt) * deltaH ).
 		} else {
-			set speedPID:setpoint to - 0.97 * sqrt( 2 * (g1 - gt) * deltaH ).
+			set speedPID:setpoint to - 0.97 * sqrt( 2 * (g1 - speedPID:maxoutput * gt) * deltaH ).
 		}
 
 		lock throttle to speedPID:UPDATE(time:seconds, Vvert()).
@@ -72,8 +78,31 @@ until phase = -1 {
 	}
 
 	// tilt
+	if tiltMODE = "geotarget" {
+		set tilt to tiltPID:UPDATE(time:seconds, -geodistance(geotarget, geoposition)).
+		// set heading to geotarget:heading.
+
+		set tiltVEC to tilt * (north:vector * cos(geotarget:heading) - north:starvector * sin(geotarget:heading)) / max(throttle, 0.1).
+
+		set pitchPID:setpoint to -tiltVEC * facing:upvector.
+		set yawPID:setpoint to -tiltVEC * facing:starvector.
+	
+		print geodistance(geotarget, geoposition) at (4, 15).
+		print tiltPID:error at (4, 16).
+		print "tilt: " + tilt + "                                              " at (4, 17).
+		// print tiltPID:pterm at (4, 19).
+
+		print pitchPID:setpoint at (4, 21).
+		print polarSIN() at (29, 21).
+
+		print geotarget:heading at (15, 24).
+		print tiltVEC*north:vector + "  " at (5, 25).
+		print tiltVEC*north:starvector + "  " at (29, 25).
+	}
+
 	set ship:control:pitch to - pitchPID:UPDATE(time:seconds, polarSIN()).
 	set ship:control:yaw to - yawPID:UPDATE(time:seconds, yawSIN()).
+	
 
 	// roll
 	set ship:control:roll to - rollPID:UPDATE(time:seconds, rollOMEGA()).
@@ -90,6 +119,7 @@ until phase = -1 {
 
 	// print ship:control:mainthrottle + "   " at (2, 9).
 	print throttle + "   " at (2, 10).
+
 }
 
 
