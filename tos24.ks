@@ -6,18 +6,18 @@ run display.
 
 // control params
 function setPIDs {
-	set altPID to PIDLOOP(0.01, 0.2, 0.1, 0.1, 1).
-	set speedPID to PIDLOOP(0.5, 0.2, 0.0, 0.1, 1).
+	set altPID to PIDLOOP(0.1, 0.3, 0.5, 0, 1).
+	set speedPID to PIDLOOP(0.5, 0.2, 0.0, 0, 1).
 
-	set pitchPID to PIDLOOP(15.0, 0.2, 7.0, -1, 1).
-	set yawPID to PIDLOOP(15.0, 0.2, 7.0, -1, 1).
+	set pitchPID to PIDLOOP(10.0, 0.2, 7.0, -1, 1).
+	set yawPID to PIDLOOP(10.0, 0.2, 7.0, -1, 1).
 
 	set rollPID to PIDLOOP(1.0, 0.01, 0.5, -1, 1).
 
-	set tiltPID to PIDLOOP(0.002, 0.001, 0.05, 0, 0.005).
+	set tiltPID to PIDLOOP(0.002, 0.001, 0.05, 0, 0.025).
 
-	set vhPID to PIDLOOP(0.05, 0.0002, 0.0, 0, 25).
-	set hthrustPID to PIDLOOP(0.01, 0.005, 0.25, 0, 0.1).
+	set vhPID to PIDLOOP(0.07, 0.0002, 0.0, 0, 50).
+	set hthrustPID to PIDLOOP(0.001, 0.0002, 0.01, -0.2, 0.2).
 }
 
 set phase to 0.
@@ -31,8 +31,7 @@ set altPID:setpoint to 34000.
 set throttleMODE to "alt".
 set tiltMODE to "geotarget".
 
-set speedPID:setpoint to 500.
-set speedPID:minoutput to 0.
+// set speedPID:setpoint to 500.
 
 // when ship:altitude > 30500 then {
 // 	stage.
@@ -50,8 +49,13 @@ set speedPID:minoutput to 0.
 // }
 
 set altPID:setpoint to 150.
+when abs(ship:altitude - altPID:setpoint) < 1 and abs(Vvert()) < 1 then {
+	set throttleMODE to "alt1".
+}
+
+
 set geotarget to latlng(-0.0973684 + 0.003, -74.557178 - 0.0675).
-set geotarget to latlng(-0.0945671, -74.624932).
+set geotarget to latlng(-0.0945671 - 0.0001, -74.624932).
 
 when geodistance(geotarget, geoposition) < 1 and ship:velocity:surface:mag < 1 then {
 	set altPID:setpoint to 142.4.
@@ -85,6 +89,7 @@ until phase = -1 {
 	// "constants"
 	set g1 to constant:G * Kerbin:Mass / (Kerbin:radius + ship:altitude)^2.
 	set gt to engine[0]:possiblethrust / ship:mass.
+	set thrust0 to g1 / gt.
 
 
 	// throttle
@@ -95,15 +100,27 @@ until phase = -1 {
 		set deltaH to altPID:setpoint - ship:altitude.
 
 		if deltaH > 0 {
-			set speedPID:setpoint to 1.02 * sqrt( 2 * (g1 - speedPID:minoutput * gt) * deltaH ).
+			set speedPID:setpoint to 1.0 * sqrt( 2 * (g1 - speedPID:minoutput * gt) * deltaH ).
 		} else {
 			set speedPID:setpoint to - 0.97 * sqrt( 2 * (g1 - speedPID:maxoutput * gt) * deltaH ).
 		}
 
 		lock throttle to speedPID:UPDATE(time:seconds, Vvert()).
 
+		// print speedPID:setpoint at (4, 16).
+		// print thrust0 at (30,16).
+		// print speedPID:output at (4,17).
+		// print throttle at (25, 17).
+
+		// print speedPID:pterm at (4, 30).
+		// print speedPID:iterm + " " at (4, 31).
+		// print speedPID:dterm at (4, 32).
+
 	} if throttleMODE = "alt1" {
-		lock throttle to altPID:UPDATE(time:seconds, ship:altitude).
+		set altPID:minoutput to - thrust0.
+		set altPID:maxoutput to 1 - thrust0.
+
+		lock throttle to altPID:UPDATE(time:seconds, ship:altitude) + thrust0.
 	}
 
 	// tilt
@@ -131,8 +148,19 @@ until phase = -1 {
 		print hthrust at (6, 19).
 		print hthrustPID:setpoint at (6, 20).
 		print hthrustPID:error at (26, 20).
-		print hthrustPID:Kp at (6, 21).
-		print hthrustPID:Ki at (26, 21).
+		print hthrustPID:pterm at (10, 22).
+		print hthrustPID:iterm at (10, 23).
+		print hthrustPID:dterm at (10, 24).
+
+		print hthrustPID:output at (6, 26).
+		print yawPID:setpoint at (6, 27).
+
+
+		// print yawPID:setpoint at (6, 20).
+		// print yawPID:error at (6, 21).
+		// print yawPID:kp at (6, 23).
+		// print yawPID:ki at (6, 24).
+		// print yawPID:kd at (6, 25).
 
 	} else if tiltMODE = "geotarget1" {
 		set tilt to tiltPID:UPDATE(time:seconds, -geodistance(geotarget, geoposition)).
